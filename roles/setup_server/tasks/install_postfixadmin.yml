@@ -1,0 +1,77 @@
+- name: create dir /var/www/mail
+  file:
+    path: /var/www/mail
+    state: directory
+    owner: www-data
+    group: www-data
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: create dir /var/www/mail
+  file:
+    path: /var/www/mail
+    state: directory
+    owner: www-data
+    group: www-data
+  when: ansible_facts['os_family'] == 'CentOS'
+
+- name: get postfixadmin
+  get_url:
+    url: "{{ url_postfixadmin }}"
+    dest: /tmp/postfixadmin.tar.gz
+  register: get_postfixadmin
+
+- name: unarchive postfixadmin
+  unarchive:
+    src: /tmp/postfixadmin.tar.gz
+    dest: /var/www/mail
+    remote_src: yes
+  when: get_postfixadmin.changed
+
+- name: rename /var/www/mail/postfixadmin to pfadmin
+  shell:
+    cmd: mv /var/www/mail/postfixadmin* /var/www/mail/pfadmin
+  when: get_postfixadmin.changed
+
+
+- name: copying my.cnf file
+  template:
+    src: my.cnf.j2
+    dest: /root/.my.cnf   
+    mode: 0600
+
+- name: create db for postfixadmin
+  mysql_db:
+    name: "{{ db_name_for_postfixadmin }}"
+    state: present
+  register: create_postfixadmin_db
+
+#- name: import db
+#  mysql_db:
+#    name: "{{ db_name_for_postfixadmin }}"
+#    state: import
+#    target: /usr/lib/bareos/scripts/ddl/creates/mysql.sql
+#  when: create_postfixadmin_db.changed
+
+
+- mysql_user:
+    name: "{{ db_user_for_postfixadmin }}"
+    password: "{{ db_password_for_postfixadmin }}"
+    host: localhost
+    state: present
+    priv: "{{ db_name_for_postfixadmin }}.*:ALL,GRANT"
+  when: create_postfixadmin_db.changed
+
+- name: copy conf.local.php
+  template:
+    src: postfixadmin/config.local.php.j2
+    dest: /var/www/mail/pfadmin/config.local.php
+    owner: www-data
+    group: www-data
+
+- name: create template_c directory
+  file:
+    path: /var/www/mail/pfadmin/templates_c
+    state: directory
+    owner: www-data
+    group: www-data
+

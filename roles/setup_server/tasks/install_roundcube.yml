@@ -1,0 +1,24 @@
+- name: get roundcube
+  get_url:
+    url: "{{ url_roundcube }}"
+    dest: /tmp/roundcube.tar.gz
+  register: get_roundcube
+
+- name: unarchive rouncube
+  unarchive:
+    src: /tmp/roundcube.tar.gz
+    dest: /tmp
+    remote_src: yes
+  when: get_roundcube.changed
+
+- name: copy roundcube files to /var/www/mail
+  shell:
+    cmd: cp -R /tmp/roundcubemail*/* /var/www/mail/
+  when: get_roundcube.changed
+
+- name: set permission /var/www/mail
+  file:
+    path: /var/www/mail
+    owner: www-data
+    group: www-data
+    recurse: yes

@@ -1,0 +1,6 @@
+- name: install mail server
+  hosts: mailServer
+  vars_files:
+    - ./vars/common.yml
+  roles:
+    - setup_server

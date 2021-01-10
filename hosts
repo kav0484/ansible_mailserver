@@ -1,0 +1,1 @@
+mailServer ansible_ssh_host=192.168.122.86
